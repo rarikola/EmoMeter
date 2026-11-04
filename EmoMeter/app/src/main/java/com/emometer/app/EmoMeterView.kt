@@ -7,22 +7,23 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.View
 import kotlin.math.abs
-import kotlin.math.min
 
 /**
- * Four two-sided bars (neutral in the middle, intensity growing outward) plus the 8 blend chips.
- * The segment closest to the face lights up; a white needle shows the exact position.
+ * Four two-sided bars (neutral in the middle, intensity growing outward).
+ * The bars are colour only; one large word above each bar names the current state.
+ * Active blends (love, awe…) appear as large chips underneath.
  */
 class EmoMeterView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null,
 ) : View(context, attrs) {
 
     private val dp = resources.displayMetrics.density
-    private val sp = resources.displayMetrics.scaledDensity
+    private fun sp(v: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, v, resources.displayMetrics)
 
-    /** Background / text colour per petal, per level (mild, middle, intense). Same colours as the wheel. */
+    /** Colours per petal, per level (mild, middle, intense). Same colours as the wheel. */
     private val bg = arrayOf(
         intArrayOf(0xFFFFFFB1.toInt(), 0xFFFFFF54.toInt(), 0xFFFFE854.toInt()),
         intArrayOf(0xFF8CFF8C.toInt(), 0xFF54FF54.toInt(), 0xFF00B400.toInt()),
@@ -33,30 +34,28 @@ class EmoMeterView @JvmOverloads constructor(
         intArrayOf(0xFFFF8C8C.toInt(), 0xFFFF0000.toInt(), 0xFFD40000.toInt()),
         intArrayOf(0xFFFFC48C.toInt(), 0xFFFFA854.toInt(), 0xFFFF7F00.toInt()),
     )
-    private val fg = arrayOf(
-        intArrayOf(0xFF5A5000.toInt(), 0xFF5A5000.toInt(), 0xFF5A4500.toInt()),
-        intArrayOf(0xFF0B4D0B.toInt(), 0xFF0B4D0B.toInt(), Color.WHITE),
-        intArrayOf(0xFF0B3D0B.toInt(), Color.WHITE, Color.WHITE),
-        intArrayOf(0xFF00304F.toInt(), 0xFF00304F.toInt(), Color.WHITE),
-        intArrayOf(0xFF0A0A4A.toInt(), Color.WHITE, Color.WHITE),
-        intArrayOf(0xFF4A004A.toInt(), 0xFF4A004A.toInt(), Color.WHITE),
-        intArrayOf(0xFF5A0000.toInt(), Color.WHITE, Color.WHITE),
-        intArrayOf(0xFF5A2E00.toInt(), 0xFF5A2E00.toInt(), Color.WHITE),
-    )
 
     private val strength = FloatArray(Plutchik.COUNT)
 
-    private val pad = 12 * dp
-    private val captionH = 16 * dp
-    private val barH = 34 * dp
-    private val rowGap = 8 * dp
-    private val chipH = 28 * dp
-    private val chipGap = 6 * dp
+    private val pad = 14 * dp
+    private val captionH = 30 * dp
+    private val barH = 24 * dp
+    private val rowGap = 12 * dp
+    private val blendH = 40 * dp
     private val radius = 8 * dp
 
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
-    private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
+    private val side = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = sp(15f) }
+    private val big = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = sp(21f)
+        isFakeBoldText = true
+        textAlign = Paint.Align.CENTER
+    }
+    private val chipText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = sp(17f)
+        isFakeBoldText = true
+    }
     private val rect = RectF()
     private val clip = Path()
 
@@ -67,13 +66,12 @@ class EmoMeterView @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
-        val h = pad + 4 * (captionH + barH + rowGap) + 4 * dp + 2 * chipH + chipGap + pad
+        val h = pad + 4 * (captionH + barH + rowGap) + blendH + pad
         setMeasuredDimension(w, h.toInt())
     }
 
     override fun onDraw(canvas: Canvas) {
-        // Panel background.
-        fill.color = 0xC0000000.toInt()
+        fill.color = 0xD0000000.toInt()
         rect.set(0f, 0f, width.toFloat(), height.toFloat())
         canvas.drawRoundRect(rect, 16 * dp, 16 * dp, fill)
 
@@ -81,36 +79,41 @@ class EmoMeterView @JvmOverloads constructor(
         val right = width - pad
         var y = pad
         for ((l, r) in Plutchik.AXES) {
-            drawCaption(canvas, left, right, y, Plutchik.NAMES[l], Plutchik.NAMES[r])
+            val v = strength[r] - strength[l]          // negative = left petal, positive = right petal
+            val lvl = Plutchik.level(abs(v))
+            val petal = if (v < 0) l else r
+            drawCaption(canvas, left, right, y, l, r, if (lvl < 0) -1 else petal, lvl)
             y += captionH
-            drawBar(canvas, left, right, y, l, r)
+            drawBar(canvas, left, right, y, l, r, v, lvl)
             y += barH + rowGap
         }
-        y += 4 * dp
         drawBlends(canvas, left, right, y)
     }
 
-    private fun drawCaption(c: Canvas, x0: Float, x1: Float, y: Float, a: String, b: String) {
-        text.textSize = 11 * sp
-        text.color = 0xCCFFFFFF.toInt()
-        text.isFakeBoldText = false
-        val base = y + captionH - 4 * dp
-        text.textAlign = Paint.Align.LEFT
-        c.drawText(a, x0, base, text)
-        text.textAlign = Paint.Align.CENTER
-        text.color = 0x88FFFFFF.toInt()
-        c.drawText("neutral", (x0 + x1) / 2, base, text)
-        text.textAlign = Paint.Align.RIGHT
-        text.color = 0xCCFFFFFF.toInt()
-        c.drawText(b, x1, base, text)
-        text.textAlign = Paint.Align.CENTER
+    /** Petal names small at the ends; the current state large in the middle. */
+    private fun drawCaption(c: Canvas, x0: Float, x1: Float, y: Float, l: Int, r: Int, petal: Int, lvl: Int) {
+        val base = y + captionH - 8 * dp
+        side.color = 0x99FFFFFF.toInt()
+        side.textAlign = Paint.Align.LEFT
+        c.drawText(Plutchik.NAMES[l], x0, base, side)
+        side.textAlign = Paint.Align.RIGHT
+        c.drawText(Plutchik.NAMES[r], x1, base, side)
+
+        if (petal < 0) {
+            big.color = 0x66FFFFFF
+            big.isFakeBoldText = false
+            c.drawText("neutral", (x0 + x1) / 2, base, big)
+            big.isFakeBoldText = true
+        } else {
+            // Mild levels are pale colours, so the word stays white; the intense ones use the petal colour.
+            big.color = if (lvl == 0) Color.WHITE else brighten(bg[petal][lvl])
+            c.drawText(Plutchik.LEVELS[petal][lvl], (x0 + x1) / 2, base, big)
+        }
     }
 
-    /** Layout: [L intense][L middle][L mild][neutral (half)][R mild][R middle][R intense] */
-    private fun drawBar(c: Canvas, x0: Float, x1: Float, y: Float, l: Int, r: Int) {
+    /** Layout: [L intense][L middle][L mild][neutral (half)][R mild][R middle][R intense]. Colour only. */
+    private fun drawBar(c: Canvas, x0: Float, x1: Float, y: Float, l: Int, r: Int, v: Float, lvl: Int) {
         val unit = (x1 - x0) / 6.5f
-        val v = strength[r] - strength[l]          // negative = left petal, positive = right petal
-        val lvl = Plutchik.level(abs(v))
         val activeSeg = when {
             lvl < 0 -> 3
             v < 0 -> 2 - lvl
@@ -135,15 +138,14 @@ class EmoMeterView @JvmOverloads constructor(
                 val petal = if (seg < 3) l else r
                 val level = if (seg < 3) 2 - seg else seg - 4
                 fill.color = bg[petal][level]
-                fill.alpha = if (active) 255 else 95
+                fill.alpha = if (active) 255 else 80
                 c.drawRect(rect, fill)
-                drawFitted(c, Plutchik.LEVELS[petal][level], rect, fg[petal][level], if (active) 255 else 150, active)
-            }
-            if (active && seg != 3) {
-                stroke.color = Color.WHITE
-                stroke.strokeWidth = 3 * dp
-                rect.inset(1.5f * dp, 1.5f * dp)
-                c.drawRect(rect, stroke)
+                if (active) {
+                    stroke.color = Color.WHITE
+                    stroke.strokeWidth = 3 * dp
+                    rect.inset(1.5f * dp, 1.5f * dp)
+                    c.drawRect(rect, stroke)
+                }
             }
             x += w
         }
@@ -153,9 +155,8 @@ class EmoMeterView @JvmOverloads constructor(
         val center = (x0 + x1) / 2
         val nx = center + Math.signum(v) * needleOffset(abs(v)) * unit
         fill.color = Color.WHITE
-        fill.alpha = 255
-        rect.set(nx - 1.5f * dp, y - 3 * dp, nx + 1.5f * dp, y + barH + 3 * dp)
-        c.drawRoundRect(rect, 1.5f * dp, 1.5f * dp, fill)
+        rect.set(nx - 2 * dp, y - 4 * dp, nx + 2 * dp, y + barH + 4 * dp)
+        c.drawRoundRect(rect, 2 * dp, 2 * dp, fill)
     }
 
     /** Piecewise map from strength to distance from center, in segment units. */
@@ -172,58 +173,54 @@ class EmoMeterView @JvmOverloads constructor(
         return ys.last()
     }
 
-    private fun drawBlends(c: Canvas, x0: Float, x1: Float, y0: Float) {
-        val cols = 4
-        val gap = 6 * dp
-        val w = (x1 - x0 - gap * (cols - 1)) / cols
-        for ((i, b) in Plutchik.BLENDS.withIndex()) {
-            val col = i % cols
-            val row = i / cols
-            val x = x0 + col * (w + gap)
-            val y = y0 + row * (chipH + chipGap)
-            val on = strength[b.a] > 0.35f && strength[b.b] > 0.35f
-            rect.set(x, y, x + w, y + chipH)
-            if (on) {
-                fill.color = Color.WHITE
-                c.drawRoundRect(rect, radius, radius, fill)
-            } else {
-                stroke.color = 0x55FFFFFF
-                stroke.strokeWidth = 1 * dp
-                rect.inset(0.5f * dp, 0.5f * dp)
-                c.drawRoundRect(rect, radius, radius, stroke)
-                rect.set(x, y, x + w, y + chipH)
-            }
-            // Small two-colour square: which petals the blend is made of.
-            val s = 10 * dp
-            val sx = x + 7 * dp
-            val sy = y + (chipH - s) / 2
+    /** Only active blends are drawn, as large white chips with a two-colour mark. */
+    private fun drawBlends(c: Canvas, x0: Float, x1: Float, y: Float) {
+        val active = Plutchik.BLENDS.filter { strength[it.a] > 0.35f && strength[it.b] > 0.35f }
+        val chipH = 34 * dp
+        val top = y + (blendH - chipH) / 2
+        if (active.isEmpty()) {
+            side.color = 0x55FFFFFF
+            side.textAlign = Paint.Align.CENTER
+            c.drawText("no blend", (x0 + x1) / 2, top + chipH / 2 + side.textSize / 3, side)
+            return
+        }
+        val mark = 14 * dp
+        val gap = 8 * dp
+        // Measure, then centre the row of chips.
+        val widths = active.map { 10 * dp + mark + 8 * dp + chipText.measureText(it.name) + 12 * dp }
+        val total = widths.sum() + gap * (active.size - 1)
+        var x = maxOf(x0, (x0 + x1 - total) / 2)
+        for ((i, b) in active.withIndex()) {
+            val w = widths[i]
+            if (x + w > x1) break
+            rect.set(x, top, x + w, top + chipH)
+            fill.color = Color.WHITE
+            c.drawRoundRect(rect, radius, radius, fill)
+            val mx = x + 10 * dp
+            val my = top + (chipH - mark) / 2
             fill.color = bg[b.a][1]
-            c.drawRect(sx, sy, sx + s / 2, sy + s, fill)
+            c.drawRect(mx, my, mx + mark / 2, my + mark, fill)
             fill.color = bg[b.b][1]
-            c.drawRect(sx + s / 2, sy, sx + s, sy + s, fill)
-
-            val textRect = RectF(sx + s + 2 * dp, y, x + w - 2 * dp, y + chipH)
-            drawFitted(c, b.name, textRect, if (on) Color.BLACK else 0xAAFFFFFF.toInt(), 255, on)
+            c.drawRect(mx + mark / 2, my, mx + mark, my + mark, fill)
+            chipText.color = Color.BLACK
+            val fm = chipText.fontMetrics
+            c.drawText(b.name, mx + mark + 8 * dp, top + chipH / 2 - (fm.ascent + fm.descent) / 2, chipText)
+            x += w + gap
         }
     }
 
-    /** Draw text centred in r, shrinking it if needed so long words like "apprehension" still fit. */
-    private fun drawFitted(c: Canvas, s: String, r: RectF, color: Int, alpha: Int, bold: Boolean) {
-        text.textAlign = Paint.Align.CENTER
-        text.isFakeBoldText = bold
-        var size = 12 * sp
-        text.textSize = size
-        val maxW = r.width() - 4 * dp
-        val tw = text.measureText(s)
-        if (tw > maxW) {
-            size = (size * maxW / tw).coerceAtLeast(7 * sp)
-            text.textSize = size
-        }
-        text.color = color
-        text.alpha = min(alpha, Color.alpha(color))
-        val fm = text.fontMetrics
-        val base = r.centerY() - (fm.ascent + fm.descent) / 2
-        c.drawText(s, r.centerX(), base, text)
-        text.isFakeBoldText = false
+    /** Dark colours (deep blue, dark green) are hard to read on black; lift them toward white. */
+    private fun brighten(color: Int): Int {
+        val r = Color.red(color)
+        val g = Color.green(color)
+        val b = Color.blue(color)
+        val lum = 0.299 * r + 0.587 * g + 0.114 * b
+        if (lum > 110) return color
+        val t = 0.45f
+        return Color.rgb(
+            (r + (255 - r) * t).toInt(),
+            (g + (255 - g) * t).toInt(),
+            (b + (255 - b) * t).toInt(),
+        )
     }
 }
