@@ -199,7 +199,7 @@ class MainActivity : ComponentActivity() {
         }
         val avg = FloatArray(Shapes.N)
         for (v in samples) for (i in avg.indices) avg[i] += v[i]
-        for (i in avg.indices) avg[i] /= samples.size
+        for (i in avg.indices) avg[i] = avg[i] / samples.size
 
         if (s.petal < 0) {
             // A new neutral face: keep every direction as-is (they are changes from neutral).
