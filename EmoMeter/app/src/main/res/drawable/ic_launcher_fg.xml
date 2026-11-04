@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Four short two-sided bars with a white needle, on the 108dp adaptive-icon canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FF0000" android:pathData="M30,34h22v7h-22z" />
+    <path android:fillColor="#009600" android:pathData="M56,34h22v7h-22z" />
+    <path android:fillColor="#FFA854" android:pathData="M30,45h22v7h-22z" />
+    <path android:fillColor="#59BDFF" android:pathData="M56,45h22v7h-22z" />
+    <path android:fillColor="#FFFF54" android:pathData="M30,56h22v7h-22z" />
+    <path android:fillColor="#5151FF" android:pathData="M56,56h22v7h-22z" />
+    <path android:fillColor="#54FF54" android:pathData="M30,67h22v7h-22z" />
+    <path android:fillColor="#FF54FF" android:pathData="M56,67h22v7h-22z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M40,31h2v46h-2z" />
+</vector>
