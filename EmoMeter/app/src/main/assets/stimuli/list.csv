@@ -1,0 +1,39 @@
+file,emotion,label
+# TEST CARDS ONLY. Replace with real pictures (see README).
+test01.jpg,joy,Test card 1
+test02.jpg,trust,Test card 2
+test03.jpg,fear,Test card 3
+test04.jpg,surprise,Test card 4
+test05.jpg,sadness,Test card 5
+test06.jpg,disgust,Test card 6
+test07.jpg,anger,Test card 7
+test08.jpg,anticipation,Test card 8
+test09.jpg,joy,Test card 9
+test10.jpg,trust,Test card 10
+test11.jpg,fear,Test card 11
+test12.jpg,surprise,Test card 12
+test13.jpg,sadness,Test card 13
+test14.jpg,disgust,Test card 14
+test15.jpg,anger,Test card 15
+test16.jpg,anticipation,Test card 16
+test17.jpg,joy,Test card 17
+test18.jpg,trust,Test card 18
+test19.jpg,fear,Test card 19
+test20.jpg,surprise,Test card 20
+# One-line jokes: file is "-", the joke is the label (commas are fine).
+-,joy,I bought a book on how to stop procrastinating. I'll start it tomorrow.
+-,joy,I finally got eight hours of sleep. It only took me three nights.
+-,joy,My bed is a magic place where I suddenly remember everything I forgot to do.
+-,joy,The GPS said "turn around when possible," and now I'm questioning all my life choices.
+-,joy,I'm not lazy. I'm in energy-saving mode, like my phone at 20%.
+-,joy,My washing machine ate another sock. At this point it's a relationship, not a malfunction.
+-,joy,My fridge light is the only thing that's excited to see me every single time.
+-,joy,I named my Wi-Fi "Hidden Network," and my neighbors still keep trying.
+-,joy,I started a band called Out of Office. We never show up, but everyone gets the message.
+-,joy,Autocorrect changed "on my way" to "on my whey," and now people think I'm a bodybuilder.
+-,joy,My cat has stared at the same wall for ten minutes. I've never been this scared of a wall.
+-,joy,I tried to be normal once. Worst two minutes of my life.
+-,joy,I told my plants about my problems. Now they're dying too.
+-,joy,My phone battery has outlasted every New Year's resolution I've ever made, and it's at 3%.
+-,joy,I don't need a hairstylist. My pillow gives me a new look every morning.
+-,surprise,Fun fact: a group of flamingos is called a flamboyance.
